@@ -99,6 +99,10 @@ map_file_filename = r'E:\MapServer\Python\maps\test-01.map'
 map_file = open(map_file_filename, mode='w')
 
 
+MAPSERVER_URL = 'http:/localhost:8080/cgi-bin/mapserv?map='
+MAPSERVER_MAPS_FOLDER = r'/vagrant/maps/'
+
+
 write_line_to_file(tabs=0, parameter='MAP')
 #
 write_line_to_file(tabs=1, parameter='NAME', value='test-wms-01-name')
@@ -133,8 +137,9 @@ write_line_to_file(tabs=4, parameter='\"wms_title\"', value=wms_title.text, quot
 xpath = r'/default:WMS_Capabilities/default:Service/default:Abstract'
 wms_abstract = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=4, parameter='\"wms_abstract\"', value=wms_abstract.text, quotes=True)
-xpath = r'/default:WMS_Capabilities/default:Service/default:OnlineResource/@xlink:href'
-wms_onlineresource = root.xpath(xpath, namespaces=nsdict)[0]
+# xpath = r'/default:WMS_Capabilities/default:Service/default:OnlineResource/@xlink:href'
+# wms_onlineresource = root.xpath(xpath, namespaces=nsdict)[0]
+wms_onlineresource = MAPSERVER_URL + MAPSERVER_MAPS_FOLDER + os.path.basename(map_file_filename) + r'&'
 write_line_to_file(tabs=4, parameter='\"wms_onlineresource\"', value=wms_onlineresource, quotes=True)
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Request'
 requests = root.xpath(xpath, namespaces=nsdict)[0]
