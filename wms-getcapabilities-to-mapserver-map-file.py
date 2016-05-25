@@ -85,6 +85,8 @@ def write_line_to_file(tabs=0, parameter='', value='', quotes=False):
     else:
         extra_tab = gap_tabs = 0
     # print (tab_gap - len(parameter)), extra_tab, gap_tabs
+    if value is None:
+        value = ''
     if quotes:
         value = '\"' + value +'\"'
     map_file.write('{}{}{}{}\n'.format('\t' * tabs,
@@ -187,6 +189,15 @@ wms_onlineresource = MAPSERVER_URL + MAPSERVER_MAPS_FOLDER + os.path.basename(ma
 write_line_to_file(tabs=4, parameter='\"wms_onlineresource\"', value=wms_onlineresource, quotes=True)
 #
 #  ContactInformation
+xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactPersonPrimary/default:ContactPerson'
+wms_contactperson = root.xpath(xpath, namespaces=nsdict)[0]
+write_line_to_file(tabs=4, parameter='\"wms_contactperson\"', value=wms_contactperson.text, quotes=True)
+xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactPersonPrimary/default:ContactOrganization'
+wms_contactorganization = root.xpath(xpath, namespaces=nsdict)[0]
+write_line_to_file(tabs=4, parameter='\"wms_contactorganization\"', value=wms_contactorganization.text, quotes=True)
+xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactPosition'
+wms_contactposition = root.xpath(xpath, namespaces=nsdict)[0]
+write_line_to_file(tabs=4, parameter='\"wms_contactposition\"', value=wms_contactposition.text, quotes=True)
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:AddressType'
 wms_addresstype = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=4, parameter='\"wms_addresstype\"', value=wms_addresstype.text, quotes=True)
@@ -205,6 +216,16 @@ write_line_to_file(tabs=4, parameter='\"wms_postcode\"', value=wms_postcode.text
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:Country'
 wms_country = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=4, parameter='\"wms_country\"', value=wms_country.text, quotes=True)
+xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactVoiceTelephone'
+wms_contactvoicetelephone = root.xpath(xpath, namespaces=nsdict)[0]
+write_line_to_file(tabs=4, parameter='\"wms_contactvoicetelephone\"', value=wms_contactvoicetelephone.text, quotes=True)
+xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactFacsimileTelephone'
+wms_contactfacsimiletelephone = root.xpath(xpath, namespaces=nsdict)[0]
+write_line_to_file(tabs=4, parameter='\"wms_contactfacsimiletelephone\"', value=wms_contactfacsimiletelephone.text, quotes=True)
+xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactElectronicMailAddress'
+wms_contactelectronicmailaddress = root.xpath(xpath, namespaces=nsdict)[0]
+print wms_contactelectronicmailaddress.tag, wms_contactelectronicmailaddress.text
+write_line_to_file(tabs=4, parameter='\"wms_contactelectronicmailaddress\"', value=wms_contactelectronicmailaddress.text, quotes=True)
 #
 #  MapServer WMS Requests
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Request'
