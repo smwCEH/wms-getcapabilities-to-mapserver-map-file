@@ -5,6 +5,7 @@ import os
 import sys
 import datetime
 import time
+import shutil
 
 
 import lxml.etree as ET
@@ -71,7 +72,7 @@ def get_xml_element(elementxpath):
 
 
 tab_size = 4
-tab_gap = tab_size * 12
+tab_gap = tab_size * 20
 
 
 def write_line_to_file(tabs=0, parameter='', value='', quotes=False):
@@ -103,44 +104,109 @@ MAPSERVER_URL = 'http:/localhost:8080/cgi-bin/mapserv?map='
 MAPSERVER_MAPS_FOLDER = r'/vagrant/maps/'
 
 
+# MapServer Map
 write_line_to_file(tabs=0, parameter='MAP')
 #
+# MapServer Map Name
 write_line_to_file(tabs=1, parameter='NAME', value='test-wms-01-name')
 #
+# MapServer Map ImageType
 write_line_to_file(tabs=1, parameter='IMAGETYPE', value='PNG')
 #
-# xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:BoundingBox'
+# MapServer Map Extent
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:BoundingBox[@CRS="{}"]'.format(DEFAULT_PROJECTION)
 bounding_box = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=1, parameter='EXTENT', value=bounding_box.get('minx') + ' ' + bounding_box.get('miny') + ' ' +bounding_box.get('maxx') + ' ' +bounding_box.get('maxy'))
 #
+# MapServer Map Size
 write_line_to_file(tabs=1, parameter='SIZE', value='350 650')
 #
+# MapServer Map Shapepath
 write_line_to_file(tabs=1, parameter='SHAPEPATH', value='/vagrant/data/smw', quotes=True)
 #
+# MapServer Fontset
 write_line_to_file(tabs=1, parameter='FONTSET', value='/vagrant/maps/fonts/fonts.list', quotes=True)
 #
+# MapServer Map Projection
 write_line_to_file(tabs=1, parameter='PROJECTION')
 write_line_to_file(tabs=2, parameter='\"init={}\"'.format(DEFAULT_PROJECTION).lower())
 write_line_to_file(tabs=1, parameter='END')
 #
 write_line_to_file(tabs=1, parameter='WEB')
 #
+# MapServer Imapgepath
 write_line_to_file(tabs=2, parameter='IMAGEPATH', value='/ms4w/tmp/ms_tmp/', quotes=True)
 #
+# MapServer ImageURL
 write_line_to_file(tabs=2, parameter='IMAGEURL', value='/ms_tmp/', quotes=True)
 #
+# WMS Service
 write_line_to_file(tabs=3, parameter='METADATA')
 xpath = r'/default:WMS_Capabilities/default:Service/default:Title'
+#
+#  WMS Title
 wms_title = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=4, parameter='\"wms_title\"', value=wms_title.text, quotes=True)
+#
+#  WMS Abstract
 xpath = r'/default:WMS_Capabilities/default:Service/default:Abstract'
 wms_abstract = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=4, parameter='\"wms_abstract\"', value=wms_abstract.text, quotes=True)
-# xpath = r'/default:WMS_Capabilities/default:Service/default:OnlineResource/@xlink:href'
-# wms_onlineresource = root.xpath(xpath, namespaces=nsdict)[0]
+#
+#  WMS KeywordList
+xpath = r'/default:WMS_Capabilities/default:Service/default:KeywordList/default:Keyword'
+wms_keywords = root.xpath(xpath, namespaces=nsdict)
+print wms_keywords
+wms_keywords_list = []
+wms_keywords_vocab_list= []
+for wms_keyword in wms_keywords:
+    print wms_keyword.tag, wms_keyword.text
+    if wms_keyword.get('vocabulary'):
+        vocabulary = wms_keyword.get('vocabulary')
+        if vocabulary == 'GEMET - INSPIRE themes, version 1.0':
+            vocabulary = 'GEMET'
+        print vocabulary
+        # if vocabulary == 'ISO':
+        #     continue
+        write_line_to_file(tabs=4, parameter='\"wms_keywordlist_vocabulary\"', value=vocabulary, quotes=True)
+        write_line_to_file(tabs=4, parameter='\"wms_keywordlist_{}_items\"'.format(vocabulary), value=wms_keyword.text, quotes=True)
+    else:
+        wms_keywords_list.append(wms_keyword.text)
+wms_keyword_string = ','.join(wms_keywords_list)
+write_line_to_file(tabs=4, parameter='\"wms_keywordlist\"', value=wms_keyword_string, quotes=True)
+
+
+#
+#  TODO - Need to ensure GEMET vocabulary and GEMET "Land Cover" keyword are included in WMS keywords section.  May appear (?) when add in INSPIRE service requirements
+#
+
+
+#
+#  WMS OnlineResource
 wms_onlineresource = MAPSERVER_URL + MAPSERVER_MAPS_FOLDER + os.path.basename(map_file_filename) + r'&'
 write_line_to_file(tabs=4, parameter='\"wms_onlineresource\"', value=wms_onlineresource, quotes=True)
+#
+#  ContactInformation
+xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:AddressType'
+wms_addresstype = root.xpath(xpath, namespaces=nsdict)[0]
+write_line_to_file(tabs=4, parameter='\"wms_addresstype\"', value=wms_addresstype.text, quotes=True)
+xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:Address'
+wms_address = root.xpath(xpath, namespaces=nsdict)[0]
+write_line_to_file(tabs=4, parameter='\"wms_address\"', value=wms_address.text, quotes=True)
+xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:City'
+wms_city = root.xpath(xpath, namespaces=nsdict)[0]
+write_line_to_file(tabs=4, parameter='\"wms_city\"', value=wms_city.text, quotes=True)
+xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:StateOrProvince'
+wms_stateorprovince = root.xpath(xpath, namespaces=nsdict)[0]
+write_line_to_file(tabs=4, parameter='\"wms_stateorprovince\"', value=wms_stateorprovince.text, quotes=True)
+xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:PostCode'
+wms_postcode = root.xpath(xpath, namespaces=nsdict)[0]
+write_line_to_file(tabs=4, parameter='\"wms_postcode\"', value=wms_postcode.text, quotes=True)
+xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:Country'
+wms_country = root.xpath(xpath, namespaces=nsdict)[0]
+write_line_to_file(tabs=4, parameter='\"wms_country\"', value=wms_country.text, quotes=True)
+#
+#  MapServer WMS Requests
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Request'
 requests = root.xpath(xpath, namespaces=nsdict)[0]
 wms_enable_requests = []
@@ -157,6 +223,8 @@ for request in requests:
             wms_enable_requests.append(request.tag)
 wms_enable_request = ' '.join(wms_enable_requests)
 write_line_to_file(tabs=4, parameter='\"wms_enable_request\"', value=wms_enable_request, quotes=True)
+#
+#  CRS
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:CRS'
 coordinate_reference_systems = root.xpath(xpath, namespaces=nsdict)
 wms_srs = []
@@ -164,30 +232,39 @@ for coordinate_reference_system in coordinate_reference_systems:
     wms_srs.append(coordinate_reference_system.text)
 wms_srs = ' '.join(wms_srs)
 write_line_to_file(tabs=4, parameter='\"wms_srs\"', value=wms_srs, quotes=True)
+#
 write_line_to_file(tabs=3, parameter='END')
 #
 write_line_to_file(tabs=1, parameter='END')
 #
+# WMS Layer
 write_line_to_file(tabs=1, parameter='LAYER')
 #
+# Name
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:Layer/default:Name'
 name = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=2, parameter='NAME', value=name.text, quotes=True)
 #
+# MapServer dataset
 write_line_to_file(tabs=2, parameter='DATA', value='LCM2007_GB_25M_V2.tif', quotes=True)
 #
+# MapServer Status
 write_line_to_file(tabs=2, parameter='STATUS', value='OFF')
 #
+# MapServer Data Type
 write_line_to_file(tabs=2, parameter='TYPE', value='RASTER')
 #
+# MapServer Projection
 write_line_to_file(tabs=2, parameter='PROJECTION')
 write_line_to_file(tabs=3, parameter='\"init={}\"'.format(DEFAULT_PROJECTION).lower())
 write_line_to_file(tabs=2, parameter='END')
 #
+# WMS Layer Title
 write_line_to_file(tabs=2, parameter='METADATA')
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:Layer/default:Title'
 wms_title = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=3, parameter='\"wms_title\"', value=wms_title.text, quotes=True)
+# WMS CRS
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:Layer/default:CRS'
 coordinate_reference_systems = root.xpath(xpath, namespaces=nsdict)
 wms_srs = []
@@ -203,6 +280,11 @@ write_line_to_file(tabs=0, parameter='END')
 
 
 map_file.close()
+
+
+# Copy map file into Vagrant MapServer machine maps folder
+vagrant_maps_folder = r'E:\vmachines\mapserver-vagrant\maps'
+shutil.copy2(map_file_filename, vagrant_maps_folder)
 
 
 end_time = time.time()
