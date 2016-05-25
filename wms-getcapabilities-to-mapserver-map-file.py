@@ -176,19 +176,14 @@ for wms_keyword in wms_keywords:
         wms_keywords_list.append(wms_keyword.text)
 wms_keyword_string = ','.join(wms_keywords_list)
 write_line_to_file(tabs=4, parameter='\"wms_keywordlist\"', value=wms_keyword_string, quotes=True)
-
-
 #
 #  TODO - Need to ensure GEMET vocabulary and GEMET "Land Cover" keyword are included in WMS keywords section.  May appear (?) when add in INSPIRE service requirements
-#
-
-
 #
 #  WMS OnlineResource
 wms_onlineresource = MAPSERVER_URL + MAPSERVER_MAPS_FOLDER + os.path.basename(map_file_filename) + r'&'
 write_line_to_file(tabs=4, parameter='\"wms_onlineresource\"', value=wms_onlineresource, quotes=True)
 #
-#  ContactInformation
+# WMS ContactInformation
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactPersonPrimary/default:ContactPerson'
 wms_contactperson = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=4, parameter='\"wms_contactperson\"', value=wms_contactperson.text, quotes=True)
@@ -224,8 +219,20 @@ wms_contactfacsimiletelephone = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=4, parameter='\"wms_contactfacsimiletelephone\"', value=wms_contactfacsimiletelephone.text, quotes=True)
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactElectronicMailAddress'
 wms_contactelectronicmailaddress = root.xpath(xpath, namespaces=nsdict)[0]
-print wms_contactelectronicmailaddress.tag, wms_contactelectronicmailaddress.text
 write_line_to_file(tabs=4, parameter='\"wms_contactelectronicmailaddress\"', value=wms_contactelectronicmailaddress.text, quotes=True)
+#
+#  WMS Fees
+xpath = r'/default:WMS_Capabilities/default:Service/default:Fees'
+wms_fees = root.xpath(xpath, namespaces=nsdict)[0]
+write_line_to_file(tabs=4, parameter='\"wms_fees\"', value=wms_fees.text, quotes=True)
+#
+#  TODO - Need to see if can add MaxWidth and MaxHeight WMS elements via the MapServer .map file.  Or is this controlled by a MapServer config file?
+#
+#  WMS Access Constraints
+xpath = r'/default:WMS_Capabilities/default:Service/default:AccessConstraints'
+wms_accessconstraints = root.xpath(xpath, namespaces=nsdict)[0]
+write_line_to_file(tabs=4, parameter='\"wms_accessconstraints\"', value=wms_accessconstraints.text, quotes=True)
+
 #
 #  MapServer WMS Requests
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Request'
