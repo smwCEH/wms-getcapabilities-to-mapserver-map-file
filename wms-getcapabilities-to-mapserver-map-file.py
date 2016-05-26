@@ -6,6 +6,7 @@ import sys
 import datetime
 import time
 import shutil
+import types
 
 
 import lxml.etree as ET
@@ -147,6 +148,7 @@ tab_gap = tab_size * 20
 
 
 def write_line_to_file(tabs=0, parameter='', value='', quotes=False):
+    # Determine tabs gap
     if value != '':
         if ((tab_gap - len(parameter))) % tab_size > 0:
             extra_tab = 1
@@ -155,15 +157,24 @@ def write_line_to_file(tabs=0, parameter='', value='', quotes=False):
         gap_tabs = ((tab_gap - len(parameter)) // tab_size) - tabs
     else:
         extra_tab = gap_tabs = 0
-    # print (tab_gap - len(parameter)), extra_tab, gap_tabs
+    # Set output_value to write to map file based upon input value type and quotes
     if value is None:
-        value = ''
+        output_value = ''
+    elif type(value) == types.BooleanType:
+        if value == True:
+            output_value = 'true'
+        else:
+            output_value = 'false'
+    elif type(value) == int:
+        output_value = str(value)
+    elif type(value) == str:
+        output_value = value
     if quotes:
-        value = '\"' + value +'\"'
+        output_value = '\"' + output_value +'\"'
     map_file.write('{}{}{}{}\n'.format('\t' * tabs,
                                        parameter,
                                        '\t' * (extra_tab + gap_tabs),
-                                       value))
+                                       output_value))
 
 
 DEFAULT_PROJECTION = 'EPSG:27700'
@@ -195,10 +206,10 @@ write_line_to_file(tabs=1, parameter='EXTENT', value=bounding_box.get('minx') + 
 write_line_to_file(tabs=1, parameter='SIZE', value='350 650')
 #
 # MapServer Map Shapepath
-write_line_to_file(tabs=1, parameter='SHAPEPATH', value='/vagrant/data/smw', quotes=True)
+write_line_to_file(tabs=1, parameter='SHAPEPATH', value='//vagrant//data//smw', quotes=True)
 #
 # MapServer Fontset
-write_line_to_file(tabs=1, parameter='FONTSET', value='/vagrant/maps/fonts/fonts.list', quotes=True)
+write_line_to_file(tabs=1, parameter='FONTSET', value='//vagrant//maps//fonts//fonts.list', quotes=True)
 #
 # MapServer Map Projection
 write_line_to_file(tabs=1, parameter='PROJECTION')
@@ -216,6 +227,32 @@ write_line_to_file(tabs=2, parameter='IMAGEURL', value='/ms_tmp/', quotes=True)
 # WMS Service
 write_line_to_file(tabs=3, parameter='METADATA')
 xpath = r'/default:WMS_Capabilities/default:Service/default:Title'
+#
+#  INSPIRE View Service support
+write_line_to_file(tabs=4,
+                   parameter='\"wms_inspire_capabilities\"',
+                   value='url',
+                   quotes=True)
+write_line_to_file(tabs=4,
+                   parameter='\"wms_languages\"',
+                   value='eng',
+                   quotes=True)
+write_line_to_file(tabs=4,
+                   parameter='\"wms_inspire_metadataurl_href\"',
+                   value='https://catalogue.ceh.ac.uk/id/987544e0-22d8-11e4-8c21-0800200c9a66.xml?format=gemini&',
+                   quotes=True)
+write_line_to_file(tabs=4,
+                   parameter='\"wms_inspire_metadataurl_format\"',
+                   value='application/vnd.iso.19139+xml',
+                   quotes=True)
+write_line_to_file(tabs=4,
+                   parameter='\"wms_keywordlist_vocabulary\"',
+                   value='ISO',
+                   quotes=True)
+write_line_to_file(tabs=4,
+                   parameter='\"wms_keywordlist_ISO_vocabulary\"',
+                   value='infoMapAccessService',
+                   quotes=True)
 #
 #  WMS Title
 wms_title = root.xpath(xpath, namespaces=nsdict)[0]
@@ -323,16 +360,16 @@ write_line_to_file(tabs=4, parameter='\"wms_enable_request\"', value=wms_enable_
 # TODO Sort out GetMap formats!!!
 #  WMS GetMap Formats
 # xpath = '/WMS_Capabilities/Service/KeywordList/Keyword'
-xpath = r'/WMS_Capabilities/Capability/Request/GetMap/Format'
+# xpath = r'/WMS_Capabilities/Capability/Request/GetMap/Format'
 # xpath = r'/WMS_Capabilities/Capability/Request/GetFeatureInfo/Format'
-xpath = xpath.replace('/', '/default:')
-print('xpath:\t{}'.format(xpath))
+# xpath = xpath.replace('/', '/default:')
+# print('xpath:\t{}'.format(xpath))
 # xpath = r'/default:WMS_Capabilities/default:Capability/default:Request/default:GetMap/default:Format'
 # xpath = r'/default:WMS_Capabilities/default:Service/default:KeywordList/default:Keyword'
-cheeses = root.xpath(xpath, namespaces=nsdict)
-print('cheeses:\t{}'.format(cheeses))
-for cheese in cheeses:
-    print '\t', cheese.tag, '\t', cheese.text
+# cheeses = root.xpath(xpath, namespaces=nsdict)
+# print('cheeses:\t{}'.format(cheeses))
+# for cheese in cheeses:
+#     print '\t', cheese.tag, '\t', cheese.text
 # wms_getmap_formatlist = []
 # for getmap_format in getmap_formats:
 #     print getmap_format.tag, getmap_format.text
@@ -362,7 +399,7 @@ write_line_to_file(tabs=4, parameter='\"wms_srs\"', value=wms_srs, quotes=True)
 #
 # Extended BoundingBox support
 # If set to True bounding boxes for all supported projections are reported
-write_line_to_file(tabs=4, parameter='\"wms_bbox_extended\"', value='True', quotes=True)
+write_line_to_file(tabs=4, parameter='\"wms_bbox_extended\"', value=True, quotes=True)
 #
 write_line_to_file(tabs=3, parameter='END')
 #
@@ -407,10 +444,7 @@ write_line_to_file(tabs=3, parameter='\"wms_srs\"', value=wms_srs, quotes=True)
 #  Layer WMS MetadataURL Type, Format, and OnlineResource
 xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL'
 xpath = xpath.replace('/', '/default:')
-print('\n\nx{}'.format(xpath))
 wms_metadataurl_type = root.xpath(xpath, namespaces=nsdict)[0]
-print wms_metadataurl_type.attrib
-print wms_metadataurl_type.tag, wms_metadataurl_type.text, wms_metadataurl_type.attrib['type']
 wms_metadataurl_type = wms_metadataurl_type.attrib['type']
 write_line_to_file(tabs=3, parameter='\"wms_metadataurl_type\"', value=wms_metadataurl_type, quotes=True)
 xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL/Format'
@@ -419,15 +453,63 @@ wms_metadataurl_format = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=3, parameter='\"wms_metadataurl_format\"', value=wms_metadataurl_format.text, quotes=True)
 xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL/OnlineResource'
 xpath = xpath.replace('/', '/default:')
-print('\n\nx{}'.format(xpath))
 wms_metadataurl_href = root.xpath(xpath, namespaces=nsdict)[0]
-print wms_metadataurl_href.attrib
-print wms_metadataurl_href.tag, wms_metadataurl_href.text, wms_metadataurl_href.attrib['{'+nsdict['xlink']+'}href']
 onlineresource = wms_metadataurl_href.attrib['{'+nsdict['xlink']+'}href']
 write_line_to_file(tabs=3, parameter='\"wms_metadataurl_href\"', value=onlineresource, quotes=True)
-
-
-
+#
+# Layer Style
+xpath = r'/WMS_Capabilities/Capability/Layer/Layer/Style'
+xpath = xpath.replace('/', '/default:')
+print xpath
+styles = root.xpath(xpath, namespaces=nsdict)
+# print styles
+# style_names = []
+# for style in styles:
+#     style_names.append(style.xpath('default:Name', namespaces=nsdict)[0].text)
+# print style_names
+# style_names = ', '.join(style_names)
+# print style_names
+# write_line_to_file(tabs=3,
+#                    parameter='\"wms_style\"',
+#                    value=style_names,
+#                    quotes=True)
+for style in styles:
+    # print style.tag, style.text, type(style)
+    # print style.getchildren()
+    # print style.xpath('default:Name', namespaces=nsdict)[0].tag, style.xpath('default:Name', namespaces=nsdict)[0].text
+    style_name = style.xpath('default:Name', namespaces=nsdict)[0].text
+    # if style_name == 'inspire_common:DEFAULT':
+    #     continue
+    write_line_to_file(tabs=3,
+                       parameter='\"wms_style\"',
+                       value=style_name,
+                       quotes=True)
+    style_title = style.xpath('default:Title', namespaces=nsdict)[0].text
+    write_line_to_file(tabs=3,
+                       parameter='\"wms_style_{}_legendurl_title\"'.format(style_name),
+                       value=style_title,
+                       quotes=True)
+    style_width = style.xpath('default:LegendURL', namespaces=nsdict)[0].attrib['width']
+    write_line_to_file(tabs=3,
+                       parameter='\"wms_style_{}_legendurl_width\"'.format(style_name),
+                       value=style_width,
+                       quotes=True)
+    style_height = style.xpath('default:LegendURL', namespaces=nsdict)[0].attrib['height']
+    write_line_to_file(tabs=3,
+                       parameter='\"wms_style_{}_legendurl_height\"'.format(style_name),
+                       value=style_height,
+                       quotes=True)
+    style_format = style.xpath('default:LegendURL/default:Format', namespaces=nsdict)[0].text
+    write_line_to_file(tabs=3,
+                       parameter='\"wms_style_{}_legendurl_format\"'.format(style_name),
+                       value=style_format,
+                       quotes=True)
+    style_onlineresource = style.xpath('default:LegendURL/default:OnlineResource', namespaces=nsdict)[0].attrib['{'+nsdict['xlink']+'}href']
+    write_line_to_file(tabs=3,
+                       parameter='\"wms_style_{}_legendurl_href\"'.format(style_name),
+                       value=style_onlineresource,
+                       quotes=True)
+    print('\t{0}\n\t{1}\n\t{2}\n\t{3}\n\t{4}\n\t{5}'.format(style_name, style_title, style_width, style_height, style_format, style_onlineresource))
 #
 write_line_to_file(tabs=2, parameter='END')
 #
