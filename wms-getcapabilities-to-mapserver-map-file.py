@@ -22,19 +22,91 @@ start_time = time.time()
 
 
 wms_getcapabilities = r'http://lasigpublic.nerc-lancaster.ac.uk/arcgis/services/LandCoverMap/LCM2007_GB_25m_V2/MapServer/WMSServer?request=getCapabilities&service=WMS'
-# xml_file = r'E:\MapServer\Python\lcm2007-gb-25m-v2.xml'
-# xml_file = r'E:\MapServer\Python\junk-01.xml'
+# wms_getcapabilities = r'E:\MapServer\Python\lcm2007-gb-25m-v2.xml'
+# wms_getcapabilities = r'E:\MapServer\Python\junk-01.xml'
 
 
 print('\n\nwms_getcapabilites:\t{}'.format(wms_getcapabilities))
 
 
+# Define XML Parser
+xml_parser = ET.XMLParser()
+
+
 # Parse WMS GetCapabilities document
-xml_doc = ET.parse(wms_getcapabilities)
+xml_doc = ET.parse(wms_getcapabilities, xml_parser)
+
+
+
+print(len(xml_parser.error_log))
 
 
 # Define root element for the xml document
 root = xml_doc.getroot()
+
+
+schema_url = r'http://schemas.opengis.net/wms/1.3.0/capabilities_1_3_0.xsd'
+print('\n\nschema_url:\t{}'.format(schema_url))
+
+
+validate_schema = False
+
+
+if validate_schema:
+    print('\tValidating schema...')
+    schema_doc = ET.parse(schema_url)
+    try:
+        schema = ET.XMLSchema(schema_doc)
+    except ET.XMLSchemaParseError as e:
+        print e
+        exit(1)
+    print('\tSchema OK.')
+
+
+validate_document = False
+
+
+if validate_document:
+    print('\n\nxml_file:\t{}'.format(wms_getcapabilities))
+    print('\tTesting for well-formedness...')
+    try:
+        xml_doc = ET.parse(wms_getcapabilities)
+    except ET.XMLSyntaxError as e:
+        print('\tDocument not well-formed!')
+        print('\t\t{}'.format(e))
+    else:
+        print('\tDocument is well-formed.')
+        print('\tValidating document...')
+        # xml_doc = etree.parse(xml_file)
+        try:
+            print('\t\tschema.validate(xml_doc):\t{}'.format(schema.validate(xml_doc)))
+            schema.assertValid(xml_doc)
+        except ET.DocumentInvalid as e:
+            print('\tDocument not valid!')
+            # print('\t\t{0}'.format(e))
+            print('\t\tErrors found:\t{:>3}'.format(len(schema.error_log)))
+            error_count = 0
+            for error in schema.error_log:
+                error_count += 1
+                print('\t\t\tError:\t{:>3}'.format(error_count))
+                print('\t\t\terror:\t{}'.format(error))
+                print('\t\t\t\tMessage:\t{}'.format(error.message))
+                print('\t\t\t\tDomain:\t{}'.format(error.domain))
+                print('\t\t\t\tType:\t{}'.format(error.type))
+                print('\t\t\t\tLevel:\t{}'.format(error.level))
+                print('\t\t\t\tLine number:\t{}'.format(error.line))
+                print('\t\t\t\tColumn:\t{}'.format(error.column))
+                print('\t\t\t\tFilename:\t{}'.format(error.filename))
+                print('\t\t\t\tDomain name:\t{}'.format(error.domain_name))
+                print('\t\t\t\tType name:\t{}'.format(error.type_name))
+                print('\t\t\t\tLevel name:\t{}'.format(error.level_name))
+                # exit(1)
+        else:
+            print('\tDocument is valid.')
+
+
+for i, element in enumerate(xml_doc.getiterator()):
+    print(element.tag)
 
 
 # Get namespaces as a dictionary
@@ -48,8 +120,7 @@ nsdict['default'] = nsdict[None]
 del nsdict[None]
 # print('\n\nnsdict:\t{}'.format(nsdict))
 nsdict['xlink'] = r'http://www.w3.org/1999/xlink'
-print('\n\nnsdict:\t{}'.format(nsdict))
-
+print('\n\nnsdict:\t{}\n\n'.format(nsdict))
 
 
 def get_xml_element(elementxpath):
@@ -110,7 +181,7 @@ MAPSERVER_MAPS_FOLDER = r'/vagrant/maps/'
 write_line_to_file(tabs=0, parameter='MAP')
 #
 # MapServer Map Name
-write_line_to_file(tabs=1, parameter='NAME', value='test-wms-01-name')
+write_line_to_file(tabs=1, parameter='NAME', value='Layer', quotes=True)
 #
 # MapServer Map ImageType
 write_line_to_file(tabs=1, parameter='IMAGETYPE', value='PNG')
@@ -158,16 +229,13 @@ write_line_to_file(tabs=4, parameter='\"wms_abstract\"', value=wms_abstract.text
 #  WMS KeywordList
 xpath = r'/default:WMS_Capabilities/default:Service/default:KeywordList/default:Keyword'
 wms_keywords = root.xpath(xpath, namespaces=nsdict)
-print wms_keywords
 wms_keywords_list = []
 wms_keywords_vocab_list= []
 for wms_keyword in wms_keywords:
-    print wms_keyword.tag, wms_keyword.text
     if wms_keyword.get('vocabulary'):
         vocabulary = wms_keyword.get('vocabulary')
         if vocabulary == 'GEMET - INSPIRE themes, version 1.0':
             vocabulary = 'GEMET'
-        print vocabulary
         # if vocabulary == 'ISO':
         #     continue
         write_line_to_file(tabs=4, parameter='\"wms_keywordlist_vocabulary\"', value=vocabulary, quotes=True)
@@ -252,7 +320,38 @@ for request in requests:
 wms_enable_request = ' '.join(wms_enable_requests)
 write_line_to_file(tabs=4, parameter='\"wms_enable_request\"', value=wms_enable_request, quotes=True)
 #
-#  CRS
+# TODO Sort out GetMap formats!!!
+#  WMS GetMap Formats
+# xpath = '/WMS_Capabilities/Service/KeywordList/Keyword'
+xpath = r'/WMS_Capabilities/Capability/Request/GetMap/Format'
+# xpath = r'/WMS_Capabilities/Capability/Request/GetFeatureInfo/Format'
+xpath = xpath.replace('/', '/default:')
+print('xpath:\t{}'.format(xpath))
+# xpath = r'/default:WMS_Capabilities/default:Capability/default:Request/default:GetMap/default:Format'
+# xpath = r'/default:WMS_Capabilities/default:Service/default:KeywordList/default:Keyword'
+cheeses = root.xpath(xpath, namespaces=nsdict)
+print('cheeses:\t{}'.format(cheeses))
+for cheese in cheeses:
+    print '\t', cheese.tag, '\t', cheese.text
+# wms_getmap_formatlist = []
+# for getmap_format in getmap_formats:
+#     print getmap_format.tag, getmap_format.text
+#     wms_getmap_formatlist.append(getmap_format.text)
+# wms_getmap_formatlist = ','.join(wms_getmap_formatlist)
+# print('wms_getmap_formatlist:\t{}'.format(wms_getmap_formatlist))
+# write_line_to_file(tabs=4, parameter='\"wms_getmap_formatlist\"', value=wms_getmap_formatlist, quotes=True)
+
+
+# #
+# # Root Layer Title, Abstract, and KeywordList
+# # By default, if not set then wms_title, wms_abstract, and wms_keywordlist are used
+# write_line_to_file(tabs=4, parameter='\"wms_rootlayer_title\"', value='Layer', quotes=True)
+# write_line_to_file(tabs=4, parameter='\"wms_rootlayer_abstract\"', value='', quotes=True)
+# write_line_to_file(tabs=4, parameter='\"wms_rootlayer_keywordlist\"', value='', quotes=True)
+
+
+#
+#  Root Layer CRS
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:CRS'
 coordinate_reference_systems = root.xpath(xpath, namespaces=nsdict)
 wms_srs = []
@@ -260,6 +359,10 @@ for coordinate_reference_system in coordinate_reference_systems:
     wms_srs.append(coordinate_reference_system.text)
 wms_srs = ' '.join(wms_srs)
 write_line_to_file(tabs=4, parameter='\"wms_srs\"', value=wms_srs, quotes=True)
+#
+# Extended BoundingBox support
+# If set to True bounding boxes for all supported projections are reported
+write_line_to_file(tabs=4, parameter='\"wms_bbox_extended\"', value='True', quotes=True)
 #
 write_line_to_file(tabs=3, parameter='END')
 #
@@ -300,6 +403,32 @@ for coordinate_reference_system in coordinate_reference_systems:
     wms_srs.append(coordinate_reference_system.text)
 wms_srs = ' '.join(wms_srs)
 write_line_to_file(tabs=3, parameter='\"wms_srs\"', value=wms_srs, quotes=True)
+#
+#  Layer WMS MetadataURL Type, Format, and OnlineResource
+xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL'
+xpath = xpath.replace('/', '/default:')
+print('\n\nx{}'.format(xpath))
+wms_metadataurl_type = root.xpath(xpath, namespaces=nsdict)[0]
+print wms_metadataurl_type.attrib
+print wms_metadataurl_type.tag, wms_metadataurl_type.text, wms_metadataurl_type.attrib['type']
+wms_metadataurl_type = wms_metadataurl_type.attrib['type']
+write_line_to_file(tabs=3, parameter='\"wms_metadataurl_type\"', value=wms_metadataurl_type, quotes=True)
+xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL/Format'
+xpath = xpath.replace('/', '/default:')
+wms_metadataurl_format = root.xpath(xpath, namespaces=nsdict)[0]
+write_line_to_file(tabs=3, parameter='\"wms_metadataurl_format\"', value=wms_metadataurl_format.text, quotes=True)
+xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL/OnlineResource'
+xpath = xpath.replace('/', '/default:')
+print('\n\nx{}'.format(xpath))
+wms_metadataurl_href = root.xpath(xpath, namespaces=nsdict)[0]
+print wms_metadataurl_href.attrib
+print wms_metadataurl_href.tag, wms_metadataurl_href.text, wms_metadataurl_href.attrib['{'+nsdict['xlink']+'}href']
+onlineresource = wms_metadataurl_href.attrib['{'+nsdict['xlink']+'}href']
+write_line_to_file(tabs=3, parameter='\"wms_metadataurl_href\"', value=onlineresource, quotes=True)
+
+
+
+#
 write_line_to_file(tabs=2, parameter='END')
 #
 write_line_to_file(tabs=1, parameter='END')
@@ -319,5 +448,5 @@ end_time = time.time()
 
 
 # elapsed_time = end_time - start_time
-print('\n\nIt took {} to exceute this.\n'.format(hms_string(end_time - start_time)))
-print('Done.\n')
+print('\n\nIt took {} to exceute this.'.format(hms_string(end_time - start_time)))
+print('\n\nDone.\n')
