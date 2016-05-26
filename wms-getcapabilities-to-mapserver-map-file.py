@@ -13,21 +13,35 @@ import lxml.etree as ET
 
 
 def hms_string(sec_elapsed):
+    """Function to display elapsed time
+
+    Keyword arguments:
+    sec_elapsed -- elapsed time in seconds
+    """
     h = int(sec_elapsed / (60 * 60))
     m = int((sec_elapsed % (60 * 60)) / 60)
     s = sec_elapsed % 60.
     return "{}:{:>02}:{:>05.2f}".format(h, m, s)
 
 
+# Capture start_time
 start_time = time.time()
 
 
+# Define WMS GetCapabilities document
 wms_getcapabilities = r'http://lasigpublic.nerc-lancaster.ac.uk/arcgis/services/LandCoverMap/LCM2007_GB_25m_V2/MapServer/WMSServer?request=getCapabilities&service=WMS'
 # wms_getcapabilities = r'E:\MapServer\Python\lcm2007-gb-25m-v2.xml'
 # wms_getcapabilities = r'E:\MapServer\Python\junk-01.xml'
-
-
 print('\n\nwms_getcapabilites:\t{}'.format(wms_getcapabilities))
+
+
+# Define default projection
+DEFAULT_PROJECTION = 'EPSG:27700'
+
+
+# Define MapServer URL and maps folder for WMS Service OnlineResource
+MAPSERVER_URL = 'http:/localhost:8080/cgi-bin/mapserv?map='
+MAPSERVER_MAPS_FOLDER = r'/vagrant/maps/'
 
 
 # Define XML Parser
@@ -38,7 +52,7 @@ xml_parser = ET.XMLParser()
 xml_doc = ET.parse(wms_getcapabilities, xml_parser)
 
 
-
+# Print parser error log
 print(len(xml_parser.error_log))
 
 
@@ -46,13 +60,13 @@ print(len(xml_parser.error_log))
 root = xml_doc.getroot()
 
 
+# Define schema/XSD
 schema_url = r'http://schemas.opengis.net/wms/1.3.0/capabilities_1_3_0.xsd'
 print('\n\nschema_url:\t{}'.format(schema_url))
 
 
+# Validate schema/XSD
 validate_schema = False
-
-
 if validate_schema:
     print('\tValidating schema...')
     schema_doc = ET.parse(schema_url)
@@ -64,9 +78,8 @@ if validate_schema:
     print('\tSchema OK.')
 
 
+# Validate XML against schema/XSD
 validate_document = False
-
-
 if validate_document:
     print('\n\nxml_file:\t{}'.format(wms_getcapabilities))
     print('\tTesting for well-formedness...')
@@ -106,20 +119,18 @@ if validate_document:
             print('\tDocument is valid.')
 
 
-for i, element in enumerate(xml_doc.getiterator()):
-    print(element.tag)
+# Iterate through XML document elements
+# for i, element in enumerate(xml_doc.getiterator()):
+#     print(element.tag)
 
 
 # Get namespaces as a dictionary
 nsdict = root.nsmap
-# print('nsDict:\t{}'.format(nsdict))
 # Copy the default un-named namespace item (identified with the [None] key) in the namespace dictionary
 # to a named default namespace (identified with the key ['default'])
 nsdict['default'] = nsdict[None]
-# print('nsDict:\t{}'.format(nsdict))
 # Delete the default un-named namespace item (identified with the [None] key) in the namespace dictionary
 del nsdict[None]
-# print('\n\nnsdict:\t{}'.format(nsdict))
 nsdict['xlink'] = r'http://www.w3.org/1999/xlink'
 print('\n\nnsdict:\t{}\n\n'.format(nsdict))
 
@@ -143,11 +154,20 @@ def get_xml_element(elementxpath):
         return element[0]
 
 
+# Define tab size and spacing between parameters and values in the MapServer .map file
 tab_size = 4
 tab_gap = tab_size * 20
 
 
 def write_line_to_file(tabs=0, parameter='', value='', quotes=False):
+    """Write parameter and value to MapServer .map file
+
+    Keyword arguments:
+    tabs -- indent for parameter
+    parameter -- parameter name
+    value -- parameter value
+    quotes -- Boolean to print parameter value in double quotes
+    """
     # Determine tabs gap
     if value != '':
         if ((tab_gap - len(parameter))) % tab_size > 0:
@@ -171,60 +191,56 @@ def write_line_to_file(tabs=0, parameter='', value='', quotes=False):
         output_value = value
     if quotes:
         output_value = '\"' + output_value +'\"'
+    # Write formatted line to MapServer .map file
     map_file.write('{}{}{}{}\n'.format('\t' * tabs,
                                        parameter,
                                        '\t' * (extra_tab + gap_tabs),
                                        output_value))
 
 
-DEFAULT_PROJECTION = 'EPSG:27700'
-
-
+# Define and open MapServer .map file to be written to
 map_file_filename = r'E:\MapServer\Python\maps\test-01.map'
 map_file = open(map_file_filename, mode='w')
 
 
-MAPSERVER_URL = 'http:/localhost:8080/cgi-bin/mapserv?map='
-MAPSERVER_MAPS_FOLDER = r'/vagrant/maps/'
-
-
-# MapServer Map
+# Write parameters and values for an WMS INSPIRE View Service to the MapServer .map file
+#  MapServer Map
 write_line_to_file(tabs=0, parameter='MAP')
 #
-# MapServer Map Name
+#  MapServer Map Name
 write_line_to_file(tabs=1, parameter='NAME', value='Layer', quotes=True)
 #
-# MapServer Map ImageType
+#  MapServer Map ImageType
 write_line_to_file(tabs=1, parameter='IMAGETYPE', value='PNG')
 #
-# MapServer Map Extent
+#  MapServer Map Extent
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:BoundingBox[@CRS="{}"]'.format(DEFAULT_PROJECTION)
 bounding_box = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=1, parameter='EXTENT', value=bounding_box.get('minx') + ' ' + bounding_box.get('miny') + ' ' +bounding_box.get('maxx') + ' ' +bounding_box.get('maxy'))
 #
-# MapServer Map Size
+#  MapServer Map Size
 write_line_to_file(tabs=1, parameter='SIZE', value='350 650')
 #
-# MapServer Map Shapepath
+#  MapServer Map Shapepath
 write_line_to_file(tabs=1, parameter='SHAPEPATH', value='//vagrant//data//smw', quotes=True)
 #
-# MapServer Fontset
+#  MapServer Fontset
 write_line_to_file(tabs=1, parameter='FONTSET', value='//vagrant//maps//fonts//fonts.list', quotes=True)
 #
-# MapServer Map Projection
+#  MapServer Map Projection
 write_line_to_file(tabs=1, parameter='PROJECTION')
 write_line_to_file(tabs=2, parameter='\"init={}\"'.format(DEFAULT_PROJECTION).lower())
 write_line_to_file(tabs=1, parameter='END')
 #
 write_line_to_file(tabs=1, parameter='WEB')
 #
-# MapServer Imapgepath
+#  MapServer Imapgepath
 write_line_to_file(tabs=2, parameter='IMAGEPATH', value='/ms4w/tmp/ms_tmp/', quotes=True)
 #
-# MapServer ImageURL
+#  MapServer ImageURL
 write_line_to_file(tabs=2, parameter='IMAGEURL', value='/ms_tmp/', quotes=True)
 #
-# WMS Service
+#  WMS Service
 write_line_to_file(tabs=3, parameter='METADATA')
 xpath = r'/default:WMS_Capabilities/default:Service/default:Title'
 #
@@ -288,7 +304,7 @@ write_line_to_file(tabs=4, parameter='\"wms_keywordlist\"', value=wms_keyword_st
 wms_onlineresource = MAPSERVER_URL + MAPSERVER_MAPS_FOLDER + os.path.basename(map_file_filename) + r'&'
 write_line_to_file(tabs=4, parameter='\"wms_onlineresource\"', value=wms_onlineresource, quotes=True)
 #
-# WMS ContactInformation
+#  WMS ContactInformation
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactPersonPrimary/default:ContactPerson'
 wms_contactperson = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=4, parameter='\"wms_contactperson\"', value=wms_contactperson.text, quotes=True)
@@ -357,7 +373,7 @@ for request in requests:
 wms_enable_request = ' '.join(wms_enable_requests)
 write_line_to_file(tabs=4, parameter='\"wms_enable_request\"', value=wms_enable_request, quotes=True)
 #
-# TODO Sort out GetMap formats!!!
+#  TODO Sort out GetMap formats!!!
 #  WMS GetMap Formats
 # xpath = '/WMS_Capabilities/Service/KeywordList/Keyword'
 # xpath = r'/WMS_Capabilities/Capability/Request/GetMap/Format'
@@ -377,16 +393,6 @@ write_line_to_file(tabs=4, parameter='\"wms_enable_request\"', value=wms_enable_
 # wms_getmap_formatlist = ','.join(wms_getmap_formatlist)
 # print('wms_getmap_formatlist:\t{}'.format(wms_getmap_formatlist))
 # write_line_to_file(tabs=4, parameter='\"wms_getmap_formatlist\"', value=wms_getmap_formatlist, quotes=True)
-
-
-# #
-# # Root Layer Title, Abstract, and KeywordList
-# # By default, if not set then wms_title, wms_abstract, and wms_keywordlist are used
-# write_line_to_file(tabs=4, parameter='\"wms_rootlayer_title\"', value='Layer', quotes=True)
-# write_line_to_file(tabs=4, parameter='\"wms_rootlayer_abstract\"', value='', quotes=True)
-# write_line_to_file(tabs=4, parameter='\"wms_rootlayer_keywordlist\"', value='', quotes=True)
-
-
 #
 #  Root Layer CRS
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:CRS'
@@ -397,42 +403,41 @@ for coordinate_reference_system in coordinate_reference_systems:
 wms_srs = ' '.join(wms_srs)
 write_line_to_file(tabs=4, parameter='\"wms_srs\"', value=wms_srs, quotes=True)
 #
-# Extended BoundingBox support
-# If set to True bounding boxes for all supported projections are reported
+#  Extended BoundingBox support (If set to True bounding boxes for all supported projections are reported)
 write_line_to_file(tabs=4, parameter='\"wms_bbox_extended\"', value=True, quotes=True)
 #
 write_line_to_file(tabs=3, parameter='END')
 #
 write_line_to_file(tabs=1, parameter='END')
 #
-# WMS Layer
+#  WMS Layer
 write_line_to_file(tabs=1, parameter='LAYER')
 #
-# Name
+#  Name
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:Layer/default:Name'
 name = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=2, parameter='NAME', value=name.text, quotes=True)
 #
-# MapServer dataset
+#  MapServer dataset
 write_line_to_file(tabs=2, parameter='DATA', value='LCM2007_GB_25M_V2.tif', quotes=True)
 #
-# MapServer Status
+#  MapServer Status
 write_line_to_file(tabs=2, parameter='STATUS', value='OFF')
 #
-# MapServer Data Type
+#  MapServer Data Type
 write_line_to_file(tabs=2, parameter='TYPE', value='RASTER')
 #
-# MapServer Projection
+#  MapServer Projection
 write_line_to_file(tabs=2, parameter='PROJECTION')
 write_line_to_file(tabs=3, parameter='\"init={}\"'.format(DEFAULT_PROJECTION).lower())
 write_line_to_file(tabs=2, parameter='END')
 #
-# WMS Layer Title
+#  WMS Layer Title
 write_line_to_file(tabs=2, parameter='METADATA')
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:Layer/default:Title'
 wms_title = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_file(tabs=3, parameter='\"wms_title\"', value=wms_title.text, quotes=True)
-# WMS CRS
+#  WMS CRS
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:Layer/default:CRS'
 coordinate_reference_systems = root.xpath(xpath, namespaces=nsdict)
 wms_srs = []
@@ -457,7 +462,7 @@ wms_metadataurl_href = root.xpath(xpath, namespaces=nsdict)[0]
 onlineresource = wms_metadataurl_href.attrib['{'+nsdict['xlink']+'}href']
 write_line_to_file(tabs=3, parameter='\"wms_metadataurl_href\"', value=onlineresource, quotes=True)
 #
-# Layer Style
+#  Layer Style
 xpath = r'/WMS_Capabilities/Capability/Layer/Layer/Style'
 xpath = xpath.replace('/', '/default:')
 print xpath
@@ -521,14 +526,15 @@ write_line_to_file(tabs=0, parameter='END')
 map_file.close()
 
 
-# Copy map file into Vagrant MapServer machine maps folder
+# Copy map file into Vagrant MapServer machine maps folder (to test WMS GetCapabilities created by MapServer in Vagrant VM)
 vagrant_maps_folder = r'E:\vmachines\mapserver-vagrant\maps'
 shutil.copy2(map_file_filename, vagrant_maps_folder)
 
 
+# Capture end_time
 end_time = time.time()
 
 
-# elapsed_time = end_time - start_time
+# Report elapsed_time (= end_time - start_time)
 print('\n\nIt took {} to exceute this.'.format(hms_string(end_time - start_time)))
 print('\n\nDone.\n')
