@@ -246,6 +246,10 @@ map_file_filename = r'E:\MapServer\Python\maps\test-01.map'
 map_file_list = []
 
 
+DATASET_METADATA_FILE_ID = 'a1f88807-4826-44bc-994d-a902da5119c2'
+SERVICE_METADATA_FILE_ID = '987544e0-22d8-11e4-8c21-0800200c9a66'
+
+
 # Write parameters and values for an WMS INSPIRE View Service to the MapServer .map file
 # Map object
 write_line_to_list(map_file_list,
@@ -356,10 +360,12 @@ write_line_to_list(map_file_list,
                    value='eng',
                    quotes=True,
                    comment='Supported languages; first specified is the default')
+catalogue_url = r'https://catalogue.ceh.ac.uk/'
+metadataurl_href = catalogue_url + 'id/' + SERVICE_METADATA_FILE_ID + '?format=gemini&'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_inspire_metadataurl_href\"',
-                   value='https://catalogue.ceh.ac.uk/id/987544e0-22d8-11e4-8c21-0800200c9a66.xml?format=gemini&',
+                   value=metadataurl_href,
                    quotes=True,
                    comment='URL to INSPIRE external metadata')
 write_line_to_list(map_file_list,
@@ -438,7 +444,7 @@ write_line_to_list(map_file_list,
 #  TODO - Need to ensure GEMET vocabulary and GEMET "Land Cover" keyword are included in WMS keywords section.  May appear (?) when add in INSPIRE service requirements
 #
 #  WMS OnlineResource
-wms_onlineresource = MAPSERVER_URL + MAPSERVER_MAPS_FOLDER + os.path.basename(map_file_filename)
+wms_onlineresource = MAPSERVER_URL + MAPSERVER_MAPS_FOLDER + os.path.basename(map_file_filename) + '&'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_onlineresource\"',
@@ -447,101 +453,124 @@ write_line_to_list(map_file_list,
                    comment='WMS OnlineResource')
 #
 #  WMS ContactInformation
-xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactPersonPrimary/default:ContactPerson'
-wms_contactperson = root.xpath(xpath, namespaces=nsdict)[0]
+# xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactPersonPrimary/default:ContactPerson'
+# wms_contactperson = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_contactperson = wms_contactperson.text
+wms_contactperson = r''
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_contactperson\"',
-                   value=wms_contactperson.text,
+                   value=wms_contactperson,
                    quotes=True,
                    comment='WMS ContactPerson')
-xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactPersonPrimary/default:ContactOrganization'
-wms_contactorganization = root.xpath(xpath, namespaces=nsdict)[0]
-# print('{}wms_contactorganization:\t\t{}{}'.format('\n' * 5, wms_contactorganization.text.replace('&', '&amp;'), '\n' * 5))
+# xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactPersonPrimary/default:ContactOrganization'
+# wms_contactorganization = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_contactorganization = wms_contactorganization.text
+wms_contactorganization = r'Centre for Ecology & Ecology'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_contactorganization\"',
-                   value=wms_contactorganization.text,
+                   value=wms_contactorganization,
                    quotes=True,
                    comment='WMS ContactOrganization')
-xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactPosition'
-wms_contactposition = root.xpath(xpath, namespaces=nsdict)[0]
+# xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactPosition'
+# wms_contactposition = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_contactposition = wms_contactposition.text
+wms_contactposition = r'pointOfContact'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_contactposition\"',
-                   value=wms_contactposition.text,
+                   value=wms_contactposition,
                    quotes=True,
                    comment='WMS ContactPosition')
-xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:AddressType'
-wms_addresstype = root.xpath(xpath, namespaces=nsdict)[0]
+# xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:AddressType'
+# wms_addresstype = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_addresstype = wms_addresstype.text
+wms_addresstype = r'Postal'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_addresstype\"',
-                   value=wms_addresstype.text,
+                   value=wms_addresstype,
                    quotes=True,
                    comment='WMS Contact AddressType')
-xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:Address'
-wms_address = root.xpath(xpath, namespaces=nsdict)[0]
+# xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:Address'
+# wms_address = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_address = wms_address.text
+wms_address = r'Lancaster Environment Centre, Library Avenue, Bailrigg'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_address\"',
-                   value=wms_address.text,
+                   value=wms_address,
                    quotes=True,
                    comment='WMS Address')
-xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:City'
-wms_city = root.xpath(xpath, namespaces=nsdict)[0]
+# xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:City'
+# wms_city = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_city = wms_city.text
+wms_city = r'Lancaster'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_city\"',
-                   value=wms_city.text,
+                   value=wms_city,
                    quotes=True,
                    comment='WMS City')
-xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:StateOrProvince'
-wms_stateorprovince = root.xpath(xpath, namespaces=nsdict)[0]
+# xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:StateOrProvince'
+# wms_stateorprovince = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_stateorprovince = wms_stateorprovince.text
+wms_stateorprovince = r'Lancashire'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_stateorprovince\"',
-                   value=wms_stateorprovince.text,
+                   value=wms_stateorprovince,
                    quotes=True,
                    comment='WMS StateOrProvince')
-xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:PostCode'
-wms_postcode = root.xpath(xpath, namespaces=nsdict)[0]
+# xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:PostCode'
+# wms_postcode = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_postcode = wms_postcode.text
+wms_postcode = r'LA1 4AP'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_postcode\"',
-                   value=wms_postcode.text,
+                   value=wms_postcode,
                    quotes=True,
                    comment='WMS PostCode')
-xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:Country'
-wms_country = root.xpath(xpath, namespaces=nsdict)[0]
+# xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:Country'
+# wms_country = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_country = wms_country.text
+wms_country = r'UK'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_country\"',
-                   value=wms_country.text,
+                   value=wms_country,
                    quotes=True,
                    comment='WMS Country')
-xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactVoiceTelephone'
-wms_contactvoicetelephone = root.xpath(xpath, namespaces=nsdict)[0]
+# xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactVoiceTelephone'
+# wms_contactvoicetelephone = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_contactvoicetelephone = wms_contactvoicetelephone.text
+wms_contactvoicetelephone = r''
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_contactvoicetelephone\"',
-                   value=wms_contactvoicetelephone.text,
+                   value=wms_contactvoicetelephone,
                    quotes=True,
                    comment='WMS ContactVoiceTelephone')
-xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactFacsimileTelephone'
-wms_contactfacsimiletelephone = root.xpath(xpath, namespaces=nsdict)[0]
+# xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactFacsimileTelephone'
+# wms_contactfacsimiletelephone = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_contactfacsimiletelephone = wms_contactfacsimiletelephone.text
+wms_contactfacsimiletelephone = r''
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_contactfacsimiletelephone\"',
-                   value=wms_contactfacsimiletelephone.text,
+                   value=wms_contactfacsimiletelephone,
                    quotes=True,
                    comment='WMS ContactFacsimileTelephone')
-xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactElectronicMailAddress'
-wms_contactelectronicmailaddress = root.xpath(xpath, namespaces=nsdict)[0]
+# xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactElectronicMailAddress'
+# wms_contactelectronicmailaddress = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_contactelectronicmailaddress = wms_contactelectronicmailaddress.text
+wms_contactelectronicmailaddress = r'enquiries@ceh.ac.uk'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_contactelectronicmailaddress\"',
-                   value=wms_contactelectronicmailaddress.text,
+                   value=wms_contactelectronicmailaddress,
                    quotes=True,
                    comment='WMS ContactElectronicMailAddress')
 #
@@ -556,31 +585,34 @@ write_line_to_list(map_file_list,
                    comment='WMS Fees')
 #
 #  WMS Access Constraints
-xpath = r'/default:WMS_Capabilities/default:Service/default:AccessConstraints'
-wms_accessconstraints = root.xpath(xpath, namespaces=nsdict)[0]
+# xpath = r'/default:WMS_Capabilities/default:Service/default:AccessConstraints'
+# wms_accessconstraints = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_accessconstraints = wms_accessconstraints.text
+wms_accessconstraints = r'license'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_accessconstraints\"',
-                   value=wms_accessconstraints.text,
+                   value=wms_accessconstraints,
                    quotes=True,
                    comment='WMS AccessConstraints')
 #
 #  MapServer WMS Requests
-xpath = r'/default:WMS_Capabilities/default:Capability/default:Request'
-requests = root.xpath(xpath, namespaces=nsdict)[0]
-wms_enable_requests = []
-for request in requests:
-    # Only select OGC WMS requests
-    if nsdict['default'] in request.tag:
-        # Limit which OGC WMS to specify:
-        allowed_requests = ['GetCapabilities', 'GetMap']
-        if any(x in request.tag for x in allowed_requests):
-            # Remove namespace from request element
-            i = request.tag.find('}')
-            if i > 0:
-                request.tag = request.tag[i+1:]
-            wms_enable_requests.append(request.tag)
-wms_enable_request = ' '.join(wms_enable_requests)
+# xpath = r'/default:WMS_Capabilities/default:Capability/default:Request'
+# requests = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_enable_requests = []
+# for request in requests:
+#     # Only select OGC WMS requests
+#     if nsdict['default'] in request.tag:
+#         # Limit which OGC WMS to specify:
+#         allowed_requests = ['GetCapabilities', 'GetMap']
+#         if any(x in request.tag for x in allowed_requests):
+#             # Remove namespace from request element
+#             i = request.tag.find('}')
+#             if i > 0:
+#                 request.tag = request.tag[i+1:]
+#             wms_enable_requests.append(request.tag)
+# wms_enable_request = ' '.join(wms_enable_requests)
+wms_enable_request = r'GetCapabilities GetMap'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_enable_request\"',
@@ -601,7 +633,7 @@ write_line_to_list(map_file_list,
 #         wms_getmap_formatlist.append(format.text)
 # wms_getmap_formatlist = ','.join(wms_getmap_formatlist[1:])
 # print('wms_getmap_formatlist:\t{}'.format(wms_getmap_formatlist))
-wms_getmap_formatlist = 'image/jpeg,image/tiff,image/png'
+wms_getmap_formatlist = r'image/jpeg,image/tiff,image/png'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_getmap_formatlist\"',
@@ -630,8 +662,6 @@ write_line_to_list(map_file_list,
                    value=True,
                    quotes=True,
                    comment='true|false. If true, bounding boxes are reported for all supported SRS/CRS in the GetCapabilities document')
-
-
 #
 # Set style for the root layer
 write_line_to_list(map_file_list,
@@ -670,7 +700,6 @@ write_line_to_list(map_file_list,
                    value=r'http://eidc.ceh.ac.uk/administration-folder/tools/wms/987544e0-22d8-11e4-8c21-0800200c9a66/legends/LCM2007_DomTar.png',
                    quotes=True,
                    comment='Override style legendURL href')
-
 #
 #  SLD support
 write_line_to_list(map_file_list,
@@ -680,11 +709,13 @@ write_line_to_list(map_file_list,
                    quotes=True,
                    comment='true|false. If false, SLD and SLD_BODY parameters ignored to disable remote styling of WMS layers')
 #
+# End of Web Metadata section
 write_line_to_list(map_file_list,
                    tabs=2,
                    parameter='END',
                    comment='End of Web Metadata')
 #
+# End of Web section
 write_line_to_list(map_file_list,
                    tabs=1,
                    parameter='END',
@@ -751,33 +782,37 @@ write_line_to_list(map_file_list,
                    comment='WMS human-readable name for the layer')
 #
 #  Layer WMS MetadataURL Type, Format, and OnlineResource
-xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL'
-xpath = xpath.replace('/', '/default:')
-wms_metadataurl_type = root.xpath(xpath, namespaces=nsdict)[0]
-wms_metadataurl_type = wms_metadataurl_type.attrib['type']
+# xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL'
+# xpath = xpath.replace('/', '/default:')
+# wms_metadataurl_type = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_metadataurl_type = wms_metadataurl_type.attrib['type']
+wms_metadataurl_type = r'ISO10115:2003'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_metadataurl_type\"',
                    value=wms_metadataurl_type,
                    quotes=True,
                    comment='Standard to which the metadata complies')
-xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL/Format'
-xpath = xpath.replace('/', '/default:')
-wms_metadataurl_format = root.xpath(xpath, namespaces=nsdict)[0]
+# xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL/Format'
+# xpath = xpath.replace('/', '/default:')
+# wms_metadataurl_format = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_metadataurl_format = wms_metadataurl_format.text
+wms_metadataurl_format = r'text/xml'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_metadataurl_format\"',
-                   value=wms_metadataurl_format.text,
+                   value=wms_metadataurl_format,
                    quotes=True,
                    comment='The file format MIME type for the metadata record')
-xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL/OnlineResource'
-xpath = xpath.replace('/', '/default:')
-wms_metadataurl_href = root.xpath(xpath, namespaces=nsdict)[0]
-onlineresource = wms_metadataurl_href.attrib['{'+nsdict['xlink']+'}href']
+# xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL/OnlineResource'
+# xpath = xpath.replace('/', '/default:')
+# wms_metadataurl_href = root.xpath(xpath, namespaces=nsdict)[0]
+# wms_metadataurl_href = wms_metadataurl_href.attrib['{'+nsdict['xlink']+'}href']
+wms_metadataurl_href = catalogue_url + 'id/' + DATASET_METADATA_FILE_ID + '?'
 write_line_to_list(map_file_list,
                    tabs=3,
                    parameter='\"wms_metadataurl_href\"',
-                   value=onlineresource,
+                   value=wms_metadataurl_href,
                    quotes=True,
                    comment='URL to the layer\'s metadata')
 #
