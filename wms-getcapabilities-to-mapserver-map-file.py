@@ -50,10 +50,8 @@ xml_parser = ET.XMLParser()
 
 # Parse WMS GetCapabilities document
 xml_doc = ET.parse(wms_getcapabilities, xml_parser)
-
-
 # Print parser error log
-print(len(xml_parser.error_log))
+# print(len(xml_parser.error_log))
 
 
 # Define root element for the xml document
@@ -62,7 +60,7 @@ root = xml_doc.getroot()
 
 # Define schema/XSD
 schema_url = r'http://schemas.opengis.net/wms/1.3.0/capabilities_1_3_0.xsd'
-print('\n\nschema_url:\t{}'.format(schema_url))
+# print('\n\nschema_url:\t{}'.format(schema_url))
 
 
 # Validate schema/XSD
@@ -222,14 +220,23 @@ def write_line_to_list(list, tabs, parameter, value='', quotes=False, comment=''
     elif type(value) == int:
         output_value = str(value)
     elif type(value) == str:
-        output_value = value
+        output_value = value.replace('&', '&amp;')
     if quotes:
         output_value = '\"' + output_value +'\"'
+
+    ignore_comments = False
+
     # Write line elements to MapServer .map file list
-    list.append([tabs,
-                 parameter,
-                 output_value,
-                 '# ' + comment])
+    if ignore_comments:
+        list.append([tabs,
+                     parameter,
+                     output_value,
+                     ''])
+    else:
+        list.append([tabs,
+                     parameter,
+                     output_value,
+                     '# ' + comment])
 
 
 # Define MapServer .map file to be written to
@@ -240,28 +247,42 @@ map_file_list = []
 
 
 # Write parameters and values for an WMS INSPIRE View Service to the MapServer .map file
-#  MapServer Map
+# Map object
 write_line_to_list(map_file_list,
                    tabs=0,
                    parameter='MAP',
-                   comment='Start of MAP Object')
+                   comment='Start of Map Object')
 #
-#  MapServer Map Name
+# Map name
 write_line_to_list(map_file_list,
                    tabs=1,
                    parameter='NAME',
                    value='Layer',
                    quotes=True,
-                   comment='Name of MAP Object')
+                   comment='Prefix attached to map created using this mapfile')
 #
-#  MapServer Map ImageType
+# Map status
+write_line_to_list(map_file_list,
+                   tabs=1,
+                   parameter='STATUS',
+                   value='ON',
+                   comment='Status of the map (on|off)')
+#
+# Map image type
 write_line_to_list(map_file_list,
                    tabs=1,
                    parameter='IMAGETYPE',
                    value='PNG',
-                   comment='Image type')
+                   comment='Output format to generate')
 #
-#  MapServer Map Extent
+# Map size
+write_line_to_list(map_file_list,
+                   tabs=1,
+                   parameter='SIZE',
+                   value='350 650',
+                   comment='Size in pixels of the output image (map)')
+#
+# Map extent
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:BoundingBox[@CRS="{}"]'.format(DEFAULT_PROJECTION)
 bounding_box = root.xpath(xpath, namespaces=nsdict)[0]
 bounding_box = bounding_box.get('minx') + ' ' + bounding_box.get('miny') + ' ' +bounding_box.get('maxx') + ' ' +bounding_box.get('maxy')
@@ -269,49 +290,36 @@ write_line_to_list(map_file_list,
                    tabs=1,
                    parameter='EXTENT',
                    value=bounding_box,
-                   comment='')
+                   comment='Spatial extent of the map')
 #
-#  MapServer Map Size
+# Map units
 write_line_to_list(map_file_list,
                    tabs=1,
-                   parameter='SIZE',
-                   value='350 650',
-                   comment='')
+                   parameter='UNITS',
+                   value='METERS',
+                   comment='Units of the map coordinates')
 #
-#  MapServer Map Shapepath
+# Map shapepath
 write_line_to_list(map_file_list,
                    tabs=1,
                    parameter='SHAPEPATH',
                    value='//vagrant//data//smw',
                    quotes=True,
-                   comment='')
+                   comment='Path to the directory holding the shapefiles or tiles')
 #
-#  MapServer Fontset
+# Fontset
 write_line_to_list(map_file_list,
                    tabs=1,
                    parameter='FONTSET',
                    value='//vagrant//maps//fonts//fonts.list',
                    quotes=True,
-                   comment='')
+                   comment='Filename of the fontset file to use')
 #
-#  MapServer Map Projection
-write_line_to_list(map_file_list,
-                   tabs=1,
-                   parameter='PROJECTION',
-                   comment='Start of output projection definition')
-write_line_to_list(map_file_list,
-                   tabs=2,
-                   parameter='\"init={}\"'.format(DEFAULT_PROJECTION).lower(),
-                   comment='')
-write_line_to_list(map_file_list,
-                   tabs=1,
-                   parameter='END',
-                   comment='End of output projection definition')
-#
+# Map web metadata
 write_line_to_list(map_file_list,
                    tabs=1,
                    parameter='WEB',
-                   comment='')
+                   comment='Start of a Web object')
 #
 #  MapServer Imapgepath
 write_line_to_list(map_file_list,
@@ -319,7 +327,7 @@ write_line_to_list(map_file_list,
                    parameter='IMAGEPATH',
                    value='/ms4w/tmp/ms_tmp/',
                    quotes=True,
-                   comment='')
+                   comment='Path to the temporary directory for writing temporary files and images')
 #
 #  MapServer ImageURL
 write_line_to_list(map_file_list,
@@ -327,76 +335,71 @@ write_line_to_list(map_file_list,
                    parameter='IMAGEURL',
                    value='/ms_tmp/',
                    quotes=True,
-                   comment='')
+                   comment='Base URL for the IMAGEPATH')
 #
 #  WMS Service
 write_line_to_list(map_file_list,
-                   tabs=3,
+                   tabs=2,
                    parameter='METADATA',
                    comment='Start of METADATA section')
 #
 #  INSPIRE View Service support
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_inspire_capabilities\"',
                    value='url',
                    quotes=True,
-                   comment='')
+                   comment='Activate INSPIRE support using a reference to an external service metadata (scenario 1)')
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_languages\"',
                    value='eng',
                    quotes=True,
-                   comment='')
+                   comment='Supported languages; first specified is the default')
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_inspire_metadataurl_href\"',
                    value='https://catalogue.ceh.ac.uk/id/987544e0-22d8-11e4-8c21-0800200c9a66.xml?format=gemini&',
                    quotes=True,
-                   comment='')
+                   comment='URL to INSPIRE external metadata')
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_inspire_metadataurl_format\"',
                    value='application/vnd.iso.19139+xml',
                    quotes=True,
-                   comment='')
+                   comment='Format of INSPIRE external metadata')
 write_line_to_list(map_file_list,
-                   tabs=4,
-                   parameter='\"wms_keywordlist_vocabulary\"',
-                   value='ISO',
-                   quotes=True,
-                   comment='')
-write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_keywordlist_ISO_vocabulary\"',
                    value='infoMapAccessService',
                    quotes=True,
-                   comment='')
+                   comment='INSPIRE classification of spatial data services')
+write_line_to_list(map_file_list,
+                   tabs=3,
+                   parameter='\"wms_keywordlist_vocabulary\"',
+                   value='ISO',
+                   quotes=True,
+                   comment='Vocabulary for INSPIRE classification of spatial data services')
 #
 #  WMS Title
+xpath = r'/default:WMS_Capabilities/default:Service/default:Title'
 wms_title = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_title\"',
                    value=wms_title.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS title')
 #
 #  WMS Abstract
 xpath = r'/default:WMS_Capabilities/default:Service/default:Abstract'
 wms_abstract = root.xpath(xpath, namespaces=nsdict)[0]
-# write_line_to_list(map_file_list,
-#                    tabs=4,
-#                    parameter='\"wms_abstract\"',
-#                    value=wms_abstract.text,
-#                    quotes=True,
-#                    comment='')
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_abstract\"',
-                   value='Abstract abstract abstract abstract abstract abstract',
+                   value=wms_abstract.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS abstract')
 #
 #  WMS KeywordList
 xpath = r'/default:WMS_Capabilities/default:Service/default:KeywordList/default:Keyword'
@@ -411,157 +414,156 @@ for wms_keyword in wms_keywords:
         if vocabulary == 'ISO':
             continue
         write_line_to_list(map_file_list,
-                           tabs=4,
+                           tabs=3,
                            parameter='\"wms_keywordlist_{}_items\"'.format(vocabulary),
                            value=wms_keyword.text,
                            quotes=True,
-                           comment='')
+                           comment='Keywords')
         write_line_to_list(map_file_list,
-                           tabs=4,
+                           tabs=3,
                            parameter='\"wms_keywordlist_vocabulary\"',
                            value=vocabulary,
                            quotes=True,
-                           comment='')
+                           comment='Keywords vocabulary')
     else:
         wms_keywords_list.append(wms_keyword.text)
 wms_keyword_string = ','.join(wms_keywords_list)
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_keywordlist\"',
                    value=wms_keyword_string,
                    quotes=True,
-                   comment='')
+                   comment='Keywords list')
 #
 #  TODO - Need to ensure GEMET vocabulary and GEMET "Land Cover" keyword are included in WMS keywords section.  May appear (?) when add in INSPIRE service requirements
 #
 #  WMS OnlineResource
-wms_onlineresource = MAPSERVER_URL + MAPSERVER_MAPS_FOLDER + os.path.basename(map_file_filename) + r'&'
+wms_onlineresource = MAPSERVER_URL + MAPSERVER_MAPS_FOLDER + os.path.basename(map_file_filename)
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_onlineresource\"',
                    value=wms_onlineresource,
                    quotes=True,
-                   comment='')
+                   comment='WMS OnlineResource')
 #
 #  WMS ContactInformation
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactPersonPrimary/default:ContactPerson'
 wms_contactperson = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_contactperson\"',
                    value=wms_contactperson.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS ContactPerson')
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactPersonPrimary/default:ContactOrganization'
 wms_contactorganization = root.xpath(xpath, namespaces=nsdict)[0]
+# print('{}wms_contactorganization:\t\t{}{}'.format('\n' * 5, wms_contactorganization.text.replace('&', '&amp;'), '\n' * 5))
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_contactorganization\"',
                    value=wms_contactorganization.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS ContactOrganization')
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactPosition'
 wms_contactposition = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_contactposition\"',
                    value=wms_contactposition.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS ContactPosition')
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:AddressType'
 wms_addresstype = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_addresstype\"',
                    value=wms_addresstype.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS Contact AddressType')
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:Address'
 wms_address = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_address\"',
                    value=wms_address.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS Address')
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:City'
 wms_city = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_city\"',
                    value=wms_city.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS City')
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:StateOrProvince'
 wms_stateorprovince = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_stateorprovince\"',
                    value=wms_stateorprovince.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS StateOrProvince')
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:PostCode'
 wms_postcode = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_postcode\"',
                    value=wms_postcode.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS PostCode')
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactAddress/default:Country'
 wms_country = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_country\"',
                    value=wms_country.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS Country')
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactVoiceTelephone'
 wms_contactvoicetelephone = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_contactvoicetelephone\"',
                    value=wms_contactvoicetelephone.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS ContactVoiceTelephone')
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactFacsimileTelephone'
 wms_contactfacsimiletelephone = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_contactfacsimiletelephone\"',
                    value=wms_contactfacsimiletelephone.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS ContactFacsimileTelephone')
 xpath = r'/default:WMS_Capabilities/default:Service/default:ContactInformation/default:ContactElectronicMailAddress'
 wms_contactelectronicmailaddress = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_contactelectronicmailaddress\"',
                    value=wms_contactelectronicmailaddress.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS ContactElectronicMailAddress')
 #
 #  WMS Fees
 xpath = r'/default:WMS_Capabilities/default:Service/default:Fees'
 wms_fees = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_fees\"',
                    value=wms_fees.text,
                    quotes=True,
-                   comment='')
-#
-#  TODO - Need to see if can add MaxWidth and MaxHeight WMS elements via the MapServer .map file.  Or is this controlled by a MapServer config file?
+                   comment='WMS Fees')
 #
 #  WMS Access Constraints
 xpath = r'/default:WMS_Capabilities/default:Service/default:AccessConstraints'
 wms_accessconstraints = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_accessconstraints\"',
                    value=wms_accessconstraints.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS AccessConstraints')
 #
 #  MapServer WMS Requests
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Request'
@@ -580,36 +582,32 @@ for request in requests:
             wms_enable_requests.append(request.tag)
 wms_enable_request = ' '.join(wms_enable_requests)
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_enable_request\"',
                    value=wms_enable_request,
                    quotes=True,
-                   comment='')
+                   comment='Space separated list of WMS requests to enable')
 #
-#  TODO Sort out GetMap formats!!!
-#  WMS GetMap Formats
-# xpath = '/WMS_Capabilities/Service/KeywordList/Keyword'
-# xpath = r'/WMS_Capabilities/Capability/Request/GetMap/Format'
-# xpath = r'/WMS_Capabilities/Capability/Request/GetFeatureInfo/Format'
-# xpath = xpath.replace('/', '/default:')
-# print('xpath:\t{}'.format(xpath))
-# xpath = r'/default:WMS_Capabilities/default:Capability/default:Request/default:GetMap/default:Format'
-# xpath = r'/default:WMS_Capabilities/default:Service/default:KeywordList/default:Keyword'
-# cheeses = root.xpath(xpath, namespaces=nsdict)
-# print('cheeses:\t{}'.format(cheeses))
-# for cheese in cheeses:
-#     print '\t', cheese.tag, '\t', cheese.text
+# WMS GetMap Formats
+# xpath = r'//default:Format'
+# # xpath = xpath.replace(r'//', r'//default:')
+# print('xpath:\t\t{}'.format(xpath))
+# all_format_nodes = root.xpath(xpath, namespaces=nsdict)
+# # print('all_format_nodes:\t{}'.format(all_format_nodes))
 # wms_getmap_formatlist = []
-# for getmap_format in getmap_formats:
-#     print getmap_format.tag, getmap_format.text
-#     wms_getmap_formatlist.append(getmap_format.text)
-# wms_getmap_formatlist = ','.join(wms_getmap_formatlist)
+# for format in all_format_nodes:
+#     # print '\t', format.tag, '\t', format.text, '\t', format.getparent().tag
+#     if format.getparent().tag == 'GetMap':
+#         wms_getmap_formatlist.append(format.text)
+# wms_getmap_formatlist = ','.join(wms_getmap_formatlist[1:])
 # print('wms_getmap_formatlist:\t{}'.format(wms_getmap_formatlist))
-# write_line_to_file(tabs=4,
-#                    parameter='\"wms_getmap_formatlist\"',
-#                    value=wms_getmap_formatlist,
-#                    quotes=True,
-#                    comment='')
+wms_getmap_formatlist = 'image/jpeg,image/tiff,image/png'
+write_line_to_list(map_file_list,
+                   tabs=3,
+                   parameter='\"wms_getmap_formatlist\"',
+                   value=wms_getmap_formatlist,
+                   quotes=True,
+                   comment='Valid image formats for a WMS GetMap request')
 #
 #  Root Layer CRS
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:CRS'
@@ -619,35 +617,98 @@ for coordinate_reference_system in coordinate_reference_systems:
     wms_srs.append(coordinate_reference_system.text)
 wms_srs = ' '.join(wms_srs)
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_srs\"',
                    value=wms_srs,
                    quotes=True,
-                   comment='')
+                   comment='WMS supported EPSG projection codes')
 #
 #  Extended BoundingBox support (If set to True bounding boxes for all supported projections are reported)
 write_line_to_list(map_file_list,
-                   tabs=4,
+                   tabs=3,
                    parameter='\"wms_bbox_extended\"',
                    value=True,
                    quotes=True,
-                   comment='')
+                   comment='true|false. If true, bounding boxes are reported for all supported SRS/CRS in the GetCapabilities document')
+
+
 #
+# Set style for the root layer
 write_line_to_list(map_file_list,
                    tabs=3,
+                   parameter='\"wms_style_name\"',
+                   value='inspire_common:DEFAULT',
+                   quotes=True,
+                   comment='Style name')
+write_line_to_list(map_file_list,
+                   tabs=3,
+                   parameter='\"wms_style_title\"',
+                   value='inspire_common:DEFAULT',
+                   quotes=True,
+                   comment='Style title')
+write_line_to_list(map_file_list,
+                   tabs=3,
+                   parameter='\"wms_style_legendurl_width\"',
+                   value=226,
+                   quotes=True,
+                   comment='Override style legendURL width')
+write_line_to_list(map_file_list,
+                   tabs=3,
+                   parameter='\"wms_style_legendurl_height\"',
+                   value=431,
+                   quotes=True,
+                   comment='Override style legendURL height')
+write_line_to_list(map_file_list,
+                   tabs=3,
+                   parameter='\"wms_style_legendurl_format\"',
+                   value='image/png',
+                   quotes=True,
+                   comment='Override style legendURL format')
+write_line_to_list(map_file_list,
+                   tabs=3,
+                   parameter='\"wms_style_legendurl_href\"',
+                   value=r'http://eidc.ceh.ac.uk/administration-folder/tools/wms/987544e0-22d8-11e4-8c21-0800200c9a66/legends/LCM2007_DomTar.png',
+                   quotes=True,
+                   comment='Override style legendURL href')
+
+#
+#  SLD support
+write_line_to_list(map_file_list,
+                   tabs=3,
+                   parameter='\"wms_sld_enabled\"',
+                   value=False,
+                   quotes=True,
+                   comment='true|false. If false, SLD and SLD_BODY parameters ignored to disable remote styling of WMS layers')
+#
+write_line_to_list(map_file_list,
+                   tabs=2,
                    parameter='END',
-                   comment='')
+                   comment='End of Web Metadata')
 #
 write_line_to_list(map_file_list,
                    tabs=1,
                    parameter='END',
+                   comment='End of Web')
+#
+#  MapServer Map Projection
+write_line_to_list(map_file_list,
+                   tabs=1,
+                   parameter='PROJECTION',
+                   comment='Start of output projection definition')
+write_line_to_list(map_file_list,
+                   tabs=2,
+                   parameter='\"init={}\"'.format(DEFAULT_PROJECTION).lower(),
                    comment='')
+write_line_to_list(map_file_list,
+                   tabs=1,
+                   parameter='END',
+                   comment='End of output projection definition')
 #
 #  WMS Layer
 write_line_to_list(map_file_list,
                    tabs=1,
                    parameter='LAYER',
-                   comment='')
+                   comment='Start of Layer definition')
 #
 #  Name
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:Layer/default:Name'
@@ -657,49 +718,15 @@ write_line_to_list(map_file_list,
                    parameter='NAME',
                    value=name.text,
                    quotes=True,
-                   comment='')
+                   comment='Short name for the Layer')
 #
-#  MapServer dataset
-write_line_to_list(map_file_list,
-                   tabs=2,
-                   parameter='DATA',
-                   value='LCM2007_GB_25M_V2.tif',
-                   quotes=True,
-                   comment='')
-#
-#  MapServer Status
-write_line_to_list(map_file_list,
-                   tabs=2,
-                   parameter='STATUS',
-                   value='OFF',
-                   comment='')
-#
-#  MapServer Data Type
-write_line_to_list(map_file_list,
-                   tabs=2,
-                   parameter='TYPE',
-                   value='RASTER',
-                   comment='')
-#
-#  MapServer Projection
-write_line_to_list(map_file_list,
-                   tabs=2,
-                   parameter='PROJECTION',
-                   comment='')
-write_line_to_list(map_file_list,
-                   tabs=3,
-                   parameter='\"init={}\"'.format(DEFAULT_PROJECTION).lower(),
-                   comment='')
-write_line_to_list(map_file_list,
-                   tabs=2,
-                   parameter='END',
-                   comment='')
-#
-#  WMS Layer Title
+#  WMS Layer Metadata
 write_line_to_list(map_file_list,
                    tabs=2,
                    parameter='METADATA',
-                   comment='')
+                   comment='Start of Layer Metadata')
+#
+#  WMS Layer Title
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:Layer/default:Title'
 wms_title = root.xpath(xpath, namespaces=nsdict)[0]
 write_line_to_list(map_file_list,
@@ -707,7 +734,8 @@ write_line_to_list(map_file_list,
                    parameter='\"wms_title\"',
                    value=wms_title.text,
                    quotes=True,
-                   comment='')
+                   comment='WMS layer title')
+#
 #  WMS CRS
 xpath = r'/default:WMS_Capabilities/default:Capability/default:Layer/default:Layer/default:CRS'
 coordinate_reference_systems = root.xpath(xpath, namespaces=nsdict)
@@ -720,7 +748,7 @@ write_line_to_list(map_file_list,
                    parameter='\"wms_srs\"',
                    value=wms_srs,
                    quotes=True,
-                   comment='')
+                   comment='WMS human-readable name for the layer')
 #
 #  Layer WMS MetadataURL Type, Format, and OnlineResource
 xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL'
@@ -732,7 +760,7 @@ write_line_to_list(map_file_list,
                    parameter='\"wms_metadataurl_type\"',
                    value=wms_metadataurl_type,
                    quotes=True,
-                   comment='')
+                   comment='Standard to which the metadata complies')
 xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL/Format'
 xpath = xpath.replace('/', '/default:')
 wms_metadataurl_format = root.xpath(xpath, namespaces=nsdict)[0]
@@ -741,7 +769,7 @@ write_line_to_list(map_file_list,
                    parameter='\"wms_metadataurl_format\"',
                    value=wms_metadataurl_format.text,
                    quotes=True,
-                   comment='')
+                   comment='The file format MIME type for the metadata record')
 xpath = r'/WMS_Capabilities/Capability/Layer/Layer/MetadataURL/OnlineResource'
 xpath = xpath.replace('/', '/default:')
 wms_metadataurl_href = root.xpath(xpath, namespaces=nsdict)[0]
@@ -751,93 +779,108 @@ write_line_to_list(map_file_list,
                    parameter='\"wms_metadataurl_href\"',
                    value=onlineresource,
                    quotes=True,
-                   comment='')
+                   comment='URL to the layer\'s metadata')
 #
 #  Layer Style
-xpath = r'/WMS_Capabilities/Capability/Layer/Layer/Style'
-xpath = xpath.replace('/', '/default:')
-print('{}{}'.format('\n' * 5, xpath))
-styles = root.xpath(xpath, namespaces=nsdict)
-# print styles
-# style_names = []
+# xpath = r'/WMS_Capabilities/Capability/Layer/Layer/Style'
+# xpath = xpath.replace('/', '/default:')
+# styles = root.xpath(xpath, namespaces=nsdict)
 # for style in styles:
-#     style_names.append(style.xpath('default:Name', namespaces=nsdict)[0].text)
-# print style_names
-# style_names = ', '.join(style_names)
-# print style_names
-# write_line_to_file(tabs=3,
-#                    parameter='\"wms_style\"',
-#                    value=style_names,
-#                    quotes=True)
-for style in styles:
-    # print style.tag, style.text, type(style)
-    # print style.getchildren()
-    # print style.xpath('default:Name', namespaces=nsdict)[0].tag, style.xpath('default:Name', namespaces=nsdict)[0].text
-    style_name = style.xpath('default:Name', namespaces=nsdict)[0].text
-    # if style_name == 'inspire_common:DEFAULT':
-    #     continue
-    write_line_to_list(map_file_list,
-                       tabs=3,
-                       parameter='\"wms_style\"',
-                       value=style_name,
-                       quotes=True,
-                       comment='')
-    style_title = style.xpath('default:Title', namespaces=nsdict)[0].text
-    write_line_to_list(map_file_list,
-                       tabs=3,
-                       parameter='\"wms_style_{}_legendurl_title\"'.format(style_name),
-                       value=style_title,
-                       quotes=True,
-                       comment='')
-    style_width = style.xpath('default:LegendURL', namespaces=nsdict)[0].attrib['width']
-    write_line_to_list(map_file_list,
-                       tabs=3,
-                       parameter='\"wms_style_{}_legendurl_width\"'.format(style_name),
-                       value=style_width,
-                       quotes=True,
-                       comment='')
-    style_height = style.xpath('default:LegendURL', namespaces=nsdict)[0].attrib['height']
-    write_line_to_list(map_file_list,
-                       tabs=3,
-                       parameter='\"wms_style_{}_legendurl_height\"'.format(style_name),
-                       value=style_height,
-                       quotes=True,
-                       comment='')
-    style_format = style.xpath('default:LegendURL/default:Format', namespaces=nsdict)[0].text
-    write_line_to_list(map_file_list,
-                       tabs=3,
-                       parameter='\"wms_style_{}_legendurl_format\"'.format(style_name),
-                       value=style_format,
-                       quotes=True,
-                       comment='')
-    style_onlineresource = style.xpath('default:LegendURL/default:OnlineResource', namespaces=nsdict)[0].attrib['{'+nsdict['xlink']+'}href']
-    write_line_to_list(map_file_list,
-                       tabs=3,
-                       parameter='\"wms_style_{}_legendurl_href\"'.format(style_name),
-                       value=style_onlineresource,
-                       quotes=True,
-                       comment='')
-    print('\t{0}\n\t{1}\n\t{2}\n\t{3}\n\t{4}\n\t{5}'.format(style_name, style_title, style_width, style_height, style_format, style_onlineresource))
+#     style_name = style.xpath('default:Name', namespaces=nsdict)[0].text
+#     write_line_to_list(map_file_list,
+#                        tabs=3,
+#                        parameter='\"wms_style\"',
+#                        value=style_name,
+#                        quotes=True,
+#                        comment='The LegendURL style name')
+#     style_width = style.xpath('default:LegendURL', namespaces=nsdict)[0].attrib['width']
+#     write_line_to_list(map_file_list,
+#                        tabs=3,
+#                        parameter='\"wms_style_{}_legendurl_width\"'.format(style_name),
+#                        value=style_width,
+#                        quotes=True,
+#                        comment='The width of the legend image in pixels')
+#     style_height = style.xpath('default:LegendURL', namespaces=nsdict)[0].attrib['height']
+#     write_line_to_list(map_file_list,
+#                        tabs=3,
+#                        parameter='\"wms_style_{}_legendurl_height\"'.format(style_name),
+#                        value=style_height,
+#                        quotes=True,
+#                        comment='The height of the legend image in pixels')
+#     style_format = style.xpath('default:LegendURL/default:Format', namespaces=nsdict)[0].text
+#     write_line_to_list(map_file_list,
+#                        tabs=3,
+#                        parameter='\"wms_style_{}_legendurl_format\"'.format(style_name),
+#                        value=style_format,
+#                        quotes=True,
+#                        comment='The file format MIME type of the legend image')
+#     style_onlineresource = style.xpath('default:LegendURL/default:OnlineResource', namespaces=nsdict)[0].attrib['{'+nsdict['xlink']+'}href']
+#     write_line_to_list(map_file_list,
+#                        tabs=3,
+#                        parameter='\"wms_style_{}_legendurl_href\"'.format(style_name),
+#                        value=style_onlineresource,
+#                        quotes=True,
+#                        comment='The URL to the layer\'s legend')
 #
 write_line_to_list(map_file_list,
                    tabs=2,
                    parameter='END',
+                   comment='End of layer metadata')
+#
+# Layer data type
+write_line_to_list(map_file_list,
+                   tabs=2,
+                   parameter='TYPE',
+                   value='RASTER',
+                   comment='Layer data type')
+#
+# Layer status
+write_line_to_list(map_file_list,
+                   tabs=2,
+                   parameter='STATUS',
+                   value='OFF',
+                   comment='Layer status')
+#
+# Layer data
+write_line_to_list(map_file_list,
+                   tabs=2,
+                   parameter='DATA',
+                   value='LCM2007_GB_25M_V2.tif',
+                   quotes=True,
+                   comment='Layer data')
+#
+# Layer projection
+write_line_to_list(map_file_list,
+                   tabs=2,
+                   parameter='PROJECTION',
+                   comment='Layer projection')
+write_line_to_list(map_file_list,
+                   tabs=3,
+                   parameter='\"init={}\"'.format(DEFAULT_PROJECTION).lower(),
                    comment='')
+write_line_to_list(map_file_list,
+                   tabs=2,
+                   parameter='END',
+                   comment='End of Layer projection')
 #
 write_line_to_list(map_file_list,
                    tabs=1,
                    parameter='END',
-                   comment='')
+                   comment='End of Layer object')
 #
 write_line_to_list(map_file_list,
                    tabs=0,
                    parameter='END',
-                   comment='End of MAP Object')
+                   comment='End of Map Object')
 
 
-print('{}{}'.format('\n' * 5, map_file_list))
+# print('{}{}'.format('\n' * 5, map_file_list))
+
+
 widths = [max(map(len, col)) for col in zip(*map_file_list)[1:]]
-print('\n\nwidths:\t{}'.format(widths))
+if widths[1] > 100:
+    widths[1] = 120
+    print('\n\nwidths:\t{}'.format(widths))
 
 
 max_tab = max([i[0] for i in map_file_list])
@@ -849,12 +892,12 @@ map_file = open(map_file_filename, mode='w')
 
 print('\n')
 for row in map_file_list:
-    line = '\t' * row[0] +\
-           row[1].ljust(widths[0] + ((max_tab - row[0]) * tab_size))[:(tab_size * -1)] +\
-           '\t' +\
-           row[2].ljust(widths[1]) +\
-           '\t' +\
-           row[3].strip() +\
+    line = '\t' * row[0] + \
+           row[1].ljust(widths[0] + ((max_tab - row[0]) * tab_size)) + \
+           '\t' + \
+           row[2].ljust(widths[1]) + \
+           '\t' + \
+           row[3].strip() + \
            '\n'
     map_file.write(line)
 
